@@ -1,0 +1,65 @@
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+index 85dadeb..18e6767 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+@@ -60,7 +60,7 @@ dependencies {
+ // nice message showing that JDK 11 (or 17) is required first
+ java { targetCompatibility = JavaVersion.VERSION_11 }
+ 
+-kotlin { jvmToolchain(17) }
++kotlin { jvmToolchain(21) }
+ 
+ tasks.withType<KotlinCompile>().configureEach {
+   compilerOptions {
+diff --git a/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts b/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
+index 2fbeafd..c8524bf 100644
+--- a/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
+@@ -50,7 +50,7 @@ dependencies {
+ // nice message showing that JDK 11 (or 17) is required first
+ java { targetCompatibility = JavaVersion.VERSION_11 }
+ 
+-kotlin { jvmToolchain(17) }
++kotlin { jvmToolchain(21) }
+ 
+ tasks.withType<KotlinCompile>().configureEach {
+   compilerOptions {
+diff --git a/node_modules/@react-native/gradle-plugin/settings.gradle.kts b/node_modules/@react-native/gradle-plugin/settings.gradle.kts
+index b3c46a3..7483484 100644
+--- a/node_modules/@react-native/gradle-plugin/settings.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/settings.gradle.kts
+@@ -13,8 +13,6 @@ pluginManagement {
+   }
+ }
+ 
+-plugins { id("org.gradle.toolchains.foojay-resolver-convention").version("0.5.0") }
+-
+ include(
+     ":react-native-gradle-plugin",
+     ":settings-plugin",
+diff --git a/node_modules/@react-native/gradle-plugin/shared-testutil/build.gradle.kts b/node_modules/@react-native/gradle-plugin/shared-testutil/build.gradle.kts
+index 26173fb..6f84b66 100644
+--- a/node_modules/@react-native/gradle-plugin/shared-testutil/build.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/shared-testutil/build.gradle.kts
+@@ -23,7 +23,7 @@ dependencies { implementation(libs.junit) }
+ 
+ java { targetCompatibility = JavaVersion.VERSION_11 }
+ 
+-kotlin { jvmToolchain(17) }
++kotlin { jvmToolchain(21) }
+ 
+ tasks.withType<KotlinCompile>().configureEach {
+   compilerOptions {
+diff --git a/node_modules/@react-native/gradle-plugin/shared/build.gradle.kts b/node_modules/@react-native/gradle-plugin/shared/build.gradle.kts
+index 3159848..fba730f 100644
+--- a/node_modules/@react-native/gradle-plugin/shared/build.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/shared/build.gradle.kts
+@@ -29,7 +29,7 @@ dependencies {
+ 
+ java { targetCompatibility = JavaVersion.VERSION_11 }
+ 
+-kotlin { jvmToolchain(17) }
++kotlin { jvmToolchain(21) }
+ 
+ tasks.withType<KotlinCompile>().configureEach {
+   compilerOptions {

@@ -1,0 +1,31 @@
+diff --git a/node_modules/react-native-safe-area-context/android/build.gradle b/node_modules/react-native-safe-area-context/android/build.gradle
+index f324b9a..f335c86 100644
+--- a/node_modules/react-native-safe-area-context/android/build.gradle
++++ b/node_modules/react-native-safe-area-context/android/build.gradle
+@@ -38,6 +38,10 @@ if (isNewArchitectureEnabled()) {
+     apply plugin: "com.facebook.react"
+ }
+ 
++kotlin {
++    jvmToolchain(21)
++}
++
+ android {
+     def agpVersion = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
+     if (agpVersion.tokenize('.')[0].toInteger() >= 7) {
+@@ -74,6 +78,15 @@ android {
+         abortOnError false
+     }
+ 
++    compileOptions {
++        sourceCompatibility JavaVersion.VERSION_1_8
++        targetCompatibility JavaVersion.VERSION_1_8
++    }
++
++    kotlinOptions {
++        jvmTarget = "1.8"
++    }
++
+     packagingOptions {
+         // For some reason gradle only complains about the duplicated version of libreact_render libraries
+         // while there are more libraries copied in intermediates folder of the lib build directory, we exclude

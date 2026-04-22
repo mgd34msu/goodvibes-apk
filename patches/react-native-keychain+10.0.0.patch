@@ -1,0 +1,26 @@
+diff --git a/node_modules/react-native-keychain/android/build.gradle b/node_modules/react-native-keychain/android/build.gradle
+index f1e2f0f..5d219a7 100755
+--- a/node_modules/react-native-keychain/android/build.gradle
++++ b/node_modules/react-native-keychain/android/build.gradle
+@@ -27,6 +27,10 @@ if (isNewArchitectureEnabled()) {
+   apply plugin: "com.facebook.react"
+ }
+ 
++kotlin {
++  jvmToolchain(21)
++}
++
+ android {
+   def agpVersion = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
+   if (agpVersion.tokenize('.')[0].toInteger() >= 7) {
+@@ -47,6 +51,10 @@ android {
+     sourceCompatibility JavaVersion.VERSION_17
+     targetCompatibility JavaVersion.VERSION_17
+   }
++
++  kotlinOptions {
++    jvmTarget = "17"
++  }
+ }
+ 
+ repositories {
