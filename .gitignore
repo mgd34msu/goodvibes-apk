@@ -57,6 +57,12 @@ android/local.properties
 *.jks
 ios/Pods/
 ios/build/
+ios/DerivedData/
+ios/**/*.xcworkspace/xcuserdata/
+ios/**/*.xcodeproj/xcuserdata/
+*.xcuserstate
+coverage/
+vendor/bundle/
 
 # Development
 .codex

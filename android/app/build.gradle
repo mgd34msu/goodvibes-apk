@@ -72,6 +72,22 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def envOrNull = { String name ->
+    def value = System.getenv(name)
+    return value != null && value.trim() ? value.trim() : null
+}
+
+def releaseStoreFilePath = envOrNull("ANDROID_SIGNING_STORE_FILE")
+def releaseStorePassword = envOrNull("ANDROID_SIGNING_STORE_PASSWORD")
+def releaseKeyAlias = envOrNull("ANDROID_SIGNING_KEY_ALIAS")
+def releaseKeyPassword = envOrNull("ANDROID_SIGNING_KEY_PASSWORD")
+def releaseStoreFile = releaseStoreFilePath ? rootProject.file(releaseStoreFilePath) : null
+def hasReleaseSigning =
+    releaseStoreFile &&
+    releaseStorePassword &&
+    releaseKeyAlias &&
+    releaseKeyPassword
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -94,15 +110,24 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasReleaseSigning) {
+                storeFile releaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // In CI and local testing we fall back to the debug keystore so the
+            // release APK remains installable. Set the ANDROID_SIGNING_* env vars
+            // to produce a properly signed release artifact.
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

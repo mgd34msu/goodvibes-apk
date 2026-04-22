@@ -33,6 +33,29 @@ Use your machine's LAN URL when testing on a physical phone, for example `http:/
 - The realtime feed uses the SDK's React Native WebSocket path.
 - Approval actions and session follow-ups depend on the scopes granted by the token or login you use.
 
+## Typecheck
+
+```bash
+npm run typecheck
+```
+
+## CI
+
+GitHub Actions runs `npm run typecheck` and `./gradlew assembleDebug` on pushes to `main` and on pull requests.
+
+The CI workflow also uploads the debug APK as a workflow artifact.
+
+## Releases
+
+Push a semver tag such as `v1.0.0` to trigger the release workflow. It builds `android/app/build/outputs/apk/release/app-release.apk`, uploads it as a workflow artifact, and attaches it to the GitHub release for that tag.
+
+By default the release workflow falls back to debug signing so the APK remains directly installable for testing. To produce a properly signed release APK, configure these GitHub Actions secrets:
+
+- `ANDROID_RELEASE_KEYSTORE_BASE64`
+- `ANDROID_RELEASE_KEYSTORE_PASSWORD`
+- `ANDROID_RELEASE_KEY_ALIAS`
+- `ANDROID_RELEASE_KEY_PASSWORD`
+
 ## QR Onboarding
 
 On Android, the sign-in screen can scan a QR code and import:
