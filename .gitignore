@@ -45,12 +45,19 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 android/.gradle/
+android/.kotlin/
+android/build/
+android/app/.cxx/
 android/app/build/
+android/captures/
 android/local.properties
+*.iml
+.idea/
+*.keystore
+*.jks
 ios/Pods/
 ios/build/
 
 # Development
 .codex
 device*.png
-
