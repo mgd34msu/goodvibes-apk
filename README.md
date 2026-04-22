@@ -2,15 +2,38 @@
 
 React Native companion app for the GoodVibes TUI/daemon using the published `@pellux/goodvibes-sdk` package.
 
-## What It Does
+## Feature Highlights
 
 - stores the daemon URL and bearer token in secure storage
 - authenticates with username/password or an existing shared bearer token
-- loads control-plane, session, task, and approval snapshots over HTTP
-- keeps a lightweight WebSocket realtime feed open while the app is foregrounded
-- refreshes read models after important agent/task/control-plane events
+- supports Android QR onboarding for daemon URL, credentials, and token payloads
+- loads control-plane, task, session, approval, and provider snapshots over HTTP
+- keeps a lightweight realtime feed open while the app is foregrounded
 - lets you review and act on pending approvals
-- lets you inspect shared sessions and send follow-up messages
+- lets you inspect shared sessions, read transcripts, and send replies or follow-ups
+- lets you create companion-only remote chat sessions on the daemon
+- surfaces provider catalog, current model selection, provider warnings, and model changes
+- keeps an activity timeline of important app, provider, and session events
+
+## Install A Release APK
+
+GitHub Releases publishes an installable Android APK for each semver tag.
+
+1. Open the latest release on GitHub.
+2. Download `app-release.apk`.
+3. Install it on an Android device that can reach your GoodVibes daemon over LAN or another reachable network.
+
+This project does not currently publish an iOS build artifact.
+
+## Main Areas
+
+- `Overview`: connection health, current model, open sessions, and pending work
+- `Models`: provider catalog, provider readiness, auth hints, and model switching
+- `Sessions`: shared-session list, live transcript, pending inputs, replies, and follow-ups
+- `Approvals`: pending approval queue with allow/deny actions
+- `Tasks`: daemon task visibility from the control plane snapshot
+- `Activity`: recent app, provider, and session events
+- `Remote Chat`: companion-only chat sessions backed by the daemon
 
 ## Run
 
@@ -27,11 +50,21 @@ npm run android
 
 Use your machine's LAN URL when testing on a physical phone, for example `http://192.168.1.24:3210`.
 
+## Connect To The Daemon
+
+The app can connect in two ways:
+
+- `password`: store the daemon URL plus username/password, then sign in through the daemon
+- `token`: store the daemon URL plus an existing bearer token
+
+On Android, the QR scanner can import either mode directly from a QR payload.
+
 ## Notes
 
 - This app is a remote control-plane client. It does not run the GoodVibes runtime locally on the phone.
 - The realtime feed uses the SDK's React Native WebSocket path.
 - Approval actions and session follow-ups depend on the scopes granted by the token or login you use.
+- The phone must be able to reach the daemon URL directly. Most local setups use a LAN address.
 
 ## Typecheck
 
@@ -48,6 +81,8 @@ The CI workflow also uploads the debug APK as a workflow artifact.
 ## Releases
 
 Push a semver tag such as `v1.0.0` to trigger the release workflow. It builds `android/app/build/outputs/apk/release/app-release.apk`, uploads it as a workflow artifact, and attaches it to the GitHub release for that tag.
+
+If `docs/releases/<tag>.md` exists, the release workflow uses it as the public release notes body and appends GitHub's generated change summary after it.
 
 By default the release workflow falls back to debug signing so the APK remains directly installable for testing. To produce a properly signed release APK, configure these GitHub Actions secrets:
 

@@ -90,12 +90,14 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          name: GoodVibes Companion ${{ github.ref_name }}
           generate_release_notes: true
+          body_path: docs/releases/${{ github.ref_name }}.md
           files: android/app/build/outputs/apk/release/app-release.apk
           body: |
-            Installable APK built from `${{ github.ref_name }}`.
+            Android release of GoodVibes Companion.
 
-            Signing: `${{ env.APK_SIGNING_LABEL }}`.
+            Installable APK: `app-release.apk`
+            Signing: `${{ env.APK_SIGNING_LABEL }}`
 
-            If the Android release signing secrets are configured, this asset is release-signed.
-            Otherwise the workflow falls back to debug signing so the APK remains directly installable for testing.
+            Full usage and setup notes are in the repository README.

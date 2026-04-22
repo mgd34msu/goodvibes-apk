@@ -15,6 +15,7 @@
 credentials.json
 secrets.json
 service-account*.json
+.goodvibes/keystore/*
 
 # Cloud credentials
 .aws/
@@ -55,6 +56,10 @@ android/local.properties
 .idea/
 *.keystore
 *.jks
+*.keystore.base64
+*.jks.base64
+*.p12
+*.pfx
 ios/Pods/
 ios/build/
 ios/DerivedData/
