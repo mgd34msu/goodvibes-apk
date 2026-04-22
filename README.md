@@ -82,7 +82,11 @@ The CI workflow also uploads the debug APK as a workflow artifact.
 
 Push a semver tag such as `v1.0.0` to trigger the release workflow. It builds `android/app/build/outputs/apk/release/app-release.apk`, uploads it as a workflow artifact, and attaches it to the GitHub release for that tag.
 
-If `docs/releases/<tag>.md` exists, the release workflow uses it as the public release notes body and appends GitHub's generated change summary after it.
+Tagged releases now generate their public release page automatically.
+
+- If `docs/releases/<tag>.md` exists, the workflow uses it for that specific release.
+- Otherwise it falls back to `docs/releases/_default.md`.
+- GitHub's generated changelog is appended automatically.
 
 By default the release workflow falls back to debug signing so the APK remains directly installable for testing. To produce a properly signed release APK, configure these GitHub Actions secrets:
 
