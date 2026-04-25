@@ -11,6 +11,8 @@ import type {
   GetCompanionChatSessionOutput,
   PostCompanionChatMessageInput,
   PostCompanionChatMessageOutput,
+  UpdateCompanionChatSessionInput,
+  UpdateCompanionChatSessionOutput,
 } from '../types/companion-chat';
 import type {
   CurrentModelResponse,
@@ -281,6 +283,15 @@ function normalizeProviderRoute(route: unknown): ProviderAuthRoute | null {
     return null;
   }
 
+  const freshness =
+    typeof record.freshness === 'string' && record.freshness.trim().length > 0
+      ? (record.freshness.trim() as ProviderAuthRoute['freshness'])
+      : undefined;
+  const providerId =
+    typeof record.providerId === 'string' && record.providerId.trim().length > 0
+      ? record.providerId.trim()
+      : undefined;
+
   return {
     route: routeId,
     label,
@@ -294,6 +305,8 @@ function normalizeProviderRoute(route: unknown): ProviderAuthRoute | null {
       : {}),
     envVars: toStringArray(record.envVars),
     repairHints: toStringArray(record.repairHints),
+    ...(freshness ? { freshness } : {}),
+    ...(providerId ? { providerId } : {}),
   };
 }
 
@@ -507,15 +520,23 @@ function mapProviderEntry(provider: {
   const inferredLabel = formatProviderLabel(provider.providerId);
   const routes: readonly ProviderAuthRoute[] = (auth?.routes ?? [])
     .filter((route): route is NonNullable<typeof route> => Boolean(route))
-    .map((route) => ({
-      route: route.route,
-      label: route.label,
-      configured: route.configured,
-      usable: route.usable ?? route.configured,
-      ...(route.detail ? { detail: route.detail } : {}),
-      envVars: route.envVars ?? [],
-      repairHints: route.repairHints ?? [],
-    }));
+    .map((route) => {
+      const r = route as typeof route & {
+        readonly freshness?: ProviderAuthRoute['freshness'];
+        readonly providerId?: string;
+      };
+      return {
+        route: route.route,
+        label: route.label,
+        configured: route.configured,
+        usable: route.usable ?? route.configured,
+        ...(route.detail ? { detail: route.detail } : {}),
+        envVars: route.envVars ?? [],
+        repairHints: route.repairHints ?? [],
+        ...(r.freshness ? { freshness: r.freshness } : {}),
+        ...(r.providerId ? { providerId: r.providerId } : {}),
+      };
+    });
   const envVars = collectUniqueStrings([auth?.envVars, ...routes.map((route) => route.envVars)]);
   const authMode = auth?.mode;
   const usable =
@@ -901,6 +922,11 @@ export async function getCurrentProviderModel(
   );
 }
 
+/**
+ * Shared/TUI flow ONLY. Mutates the daemon's global current model and emits
+ * MODEL_CHANGED. Do NOT call this when changing the model for a remote
+ * companion chat session — use {@link updateCompanionChatSession} instead.
+ */
 export async function switchCurrentProviderModel(
   sdk: Pick<ReactNativeGoodVibesSdk, 'operator'>,
   registryKey: string,
@@ -910,6 +936,25 @@ export async function switchCurrentProviderModel(
     {
       method: 'PATCH',
       body: { registryKey },
+    },
+  );
+}
+
+/**
+ * Remote companion chat flow. Updates a single companion-owned chat session's
+ * provider/model (and optional title/systemPrompt) without touching the global
+ * daemon/TUI current model. Use this for the per-chat picker.
+ */
+export async function updateCompanionChatSession(
+  sdk: Pick<ReactNativeGoodVibesSdk, 'operator'>,
+  sessionId: string,
+  input: UpdateCompanionChatSessionInput,
+): Promise<UpdateCompanionChatSessionOutput> {
+  return await sdk.operator.transport.requestJson<UpdateCompanionChatSessionOutput>(
+    `/api/companion/chat/sessions/${encodeURIComponent(sessionId)}`,
+    {
+      method: 'PATCH',
+      body: input,
     },
   );
 }
@@ -959,6 +1004,8 @@ export type {
   GetCompanionChatSessionOutput,
   PostCompanionChatMessageInput,
   PostCompanionChatMessageOutput,
+  UpdateCompanionChatSessionInput,
+  UpdateCompanionChatSessionOutput,
   CurrentModelResponse,
   ListProvidersResponse,
   PatchCurrentModelResponse,

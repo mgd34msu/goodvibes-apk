@@ -603,6 +603,9 @@ function AppShell() {
   const [providerSearch, setProviderSearch] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [modelSearch, setModelSearch] = useState("");
+  const [modelApplyScope, setModelApplyScope] = useState<"global" | "chat">(
+    "global",
+  );
   const [inputsExpanded, setInputsExpanded] = useState(false);
   const [sessionInspectorExpanded, setSessionInspectorExpanded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -747,18 +750,40 @@ function AppShell() {
   const selectedChatActivityAt =
     selectedChatSession?.updatedAt ?? selectedChatSession?.createdAt ?? null;
   const chatIsClosed = selectedChatSession?.status === "closed";
+  const chatPinnedModelRef: ProviderModelRef | null = selectedChatSession?.model
+    ? {
+        registryKey: selectedChatSession.model,
+        provider:
+          selectedChatSession.provider ??
+          (selectedChatSession.model.includes(":")
+            ? selectedChatSession.model.split(":")[0] ?? ""
+            : ""),
+        id: selectedChatSession.model.includes(":")
+          ? selectedChatSession.model.split(":")[1] ?? selectedChatSession.model
+          : selectedChatSession.model,
+      }
+    : null;
+  const effectiveScope: "global" | "chat" =
+    modelApplyScope === "chat" && !selectedChatSession && !model.pendingChatModel
+      ? "chat"
+      : modelApplyScope;
+  const pickerCurrentModel: ProviderModelRef | null =
+    effectiveScope === "chat"
+      ? chatPinnedModelRef ?? model.pendingChatModel ?? null
+      : currentProviderModel;
+  const pickerBusy =
+    Boolean(model.switchingModelKey) ||
+    Boolean(model.settingChatModelSessionId);
   const chatTurnFailed = selectedChatTurnState?.status === "error";
   const chatReplyPending =
     Boolean(selectedChatSession) &&
     !chatIsClosed &&
     (Boolean(model.sendingChatSessionId) ||
       selectedChatTurnState?.status === "waiting");
-  const chatModelMismatch =
-    Boolean(selectedChatSession?.id) &&
-    Boolean(selectedChatSession?.model) &&
-    Boolean(currentProviderModel) &&
-    selectedChatSession?.model !== currentProviderModel?.registryKey &&
-    selectedChatSession?.model !== currentProviderModel?.id;
+  // Per-session model selection is intentionally independent from the global
+  // currentProviderModel now — the daemon honors them separately. The previous
+  // "mismatch" warning was a relic of the old single-model contract.
+  const chatModelMismatch = false;
   const chatStatusLabel = model.loadingChatSession
     ? "Loading conversation"
     : model.creatingChatSession
@@ -787,13 +812,7 @@ function AppShell() {
               "The assistant turn failed before it finished."
             : chatReplyPending
               ? "Waiting for the assistant reply. The app is polling the daemon for the completed turn."
-              : chatModelMismatch && selectedChatModelSummary && currentProviderModel
-                ? "This conversation is pinned to " +
-                  selectedChatModelSummary +
-                  ". The picker is set to " +
-                  currentProviderModel.registryKey +
-                  ". Start a new chat to use the new model."
-                : selectedChatSession
+              : selectedChatSession
                   ? String(loadedChatMessages.length) +
                     " messages in this thread." +
                     (selectedChatModelSummary
@@ -2354,6 +2373,70 @@ function AppShell() {
                   </Card>
 
                   <Card
+                    title="Apply Selection To"
+                    subtitle={
+                      effectiveScope === "chat"
+                        ? selectedChatSession
+                          ? "Tapping a model pins it to this remote chat only — the TUI/global model is not changed."
+                          : "Tapping a model stages it for the next remote chat you create."
+                        : "Tapping a model changes the daemon/TUI global model. Existing remote chats keep their own pinned models."
+                    }
+                  >
+                    <View style={styles.actionRow}>
+                      <Pressable
+                        onPress={() => setModelApplyScope("global")}
+                        style={({ pressed }) => [
+                          styles.providerOptionRow,
+                          modelApplyScope === "global" &&
+                            styles.providerOptionRowSelected,
+                          pressed && styles.buttonPressed,
+                          { flex: 1 },
+                        ]}
+                      >
+                        <View style={styles.providerOptionCopy}>
+                          <Text style={styles.providerOptionTitle}>
+                            Global / TUI
+                          </Text>
+                          <Text
+                            style={styles.providerOptionMeta}
+                            numberOfLines={2}
+                          >
+                            {currentProviderModel?.registryKey ?? "Not set"}
+                          </Text>
+                        </View>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => setModelApplyScope("chat")}
+                        style={({ pressed }) => [
+                          styles.providerOptionRow,
+                          modelApplyScope === "chat" &&
+                            styles.providerOptionRowSelected,
+                          pressed && styles.buttonPressed,
+                          { flex: 1 },
+                        ]}
+                      >
+                        <View style={styles.providerOptionCopy}>
+                          <Text style={styles.providerOptionTitle}>
+                            This Chat
+                          </Text>
+                          <Text
+                            style={styles.providerOptionMeta}
+                            numberOfLines={2}
+                          >
+                            {selectedChatSession
+                              ? chatPinnedModelRef?.registryKey ??
+                                "Daemon default"
+                              : model.pendingChatModel
+                                ? "Staged: " +
+                                  model.pendingChatModel.registryKey
+                                : "No chat selected — stages for next chat"}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                  </Card>
+
+                  <Card
                     title="Pick Provider"
                     subtitle={
                       selectedProvider
@@ -2455,17 +2538,43 @@ function AppShell() {
                           filteredModels.map((entry) => (
                             <ProviderModelRow
                               canSwitch={canSwitchModels}
-                              currentModel={currentProviderModel}
+                              currentModel={pickerCurrentModel}
                               key={entry.registryKey}
                               model={entry}
                               onPress={() => {
-                                void model.switchProviderModel(entry.registryKey);
+                                if (modelApplyScope === "chat") {
+                                  if (selectedChatSession) {
+                                    void model.setChatSessionModel(
+                                      selectedChatSession.id,
+                                      entry.registryKey,
+                                    );
+                                  } else {
+                                    model.setPendingChatModel({
+                                      registryKey: entry.registryKey,
+                                      provider: entry.provider,
+                                      id: entry.id,
+                                    });
+                                  }
+                                } else {
+                                  void model.switchProviderModel(
+                                    entry.registryKey,
+                                  );
+                                }
                               }}
                               provider={selectedProvider}
                               switching={
-                                model.switchingModelKey === entry.registryKey
+                                modelApplyScope === "global"
+                                  ? model.switchingModelKey ===
+                                    entry.registryKey
+                                  : Boolean(
+                                      selectedChatSession &&
+                                        model.settingChatModelSessionId ===
+                                          selectedChatSession.id &&
+                                        chatPinnedModelRef?.registryKey !==
+                                          entry.registryKey,
+                                    )
                               }
-                              switchingAny={Boolean(model.switchingModelKey)}
+                              switchingAny={pickerBusy}
                             />
                           ))
                         ) : (

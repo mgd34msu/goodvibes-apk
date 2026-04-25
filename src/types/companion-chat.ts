@@ -58,6 +58,17 @@ export interface GetCompanionChatSessionOutput {
   readonly messages: CompanionChatMessage[];
 }
 
+export interface UpdateCompanionChatSessionInput {
+  readonly title?: string;
+  readonly provider?: string;
+  readonly model?: string;
+  readonly systemPrompt?: string | null;
+}
+
+export interface UpdateCompanionChatSessionOutput {
+  readonly session: CompanionChatSession;
+}
+
 export interface CompanionChatTurnStartedEvent {
   readonly type: "turn.started";
   readonly sessionId: string;

@@ -10,6 +10,8 @@ import type {
   GetCompanionChatSessionOutput,
   PostCompanionChatMessageInput,
   PostCompanionChatMessageOutput,
+  UpdateCompanionChatSessionInput,
+  UpdateCompanionChatSessionOutput,
 } from './companion-chat';
 import type {
   CurrentModelResponse,
@@ -44,6 +46,8 @@ export type GoodVibesCreateCompanionChatSessionOutput = CreateCompanionChatSessi
 export type GoodVibesGetCompanionChatSessionOutput = GetCompanionChatSessionOutput;
 export type GoodVibesPostCompanionChatMessageInput = PostCompanionChatMessageInput;
 export type GoodVibesPostCompanionChatMessageOutput = PostCompanionChatMessageOutput;
+export type GoodVibesUpdateCompanionChatSessionInput = UpdateCompanionChatSessionInput;
+export type GoodVibesUpdateCompanionChatSessionOutput = UpdateCompanionChatSessionOutput;
 export type GoodVibesProvidersCatalog = ListProvidersResponse;
 export type GoodVibesCurrentModelResponse = CurrentModelResponse;
 export type GoodVibesPatchCurrentModelResponse = PatchCurrentModelResponse;

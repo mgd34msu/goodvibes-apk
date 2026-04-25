@@ -1,6 +1,12 @@
 export type ProviderConfiguredVia = 'env' | 'secrets' | 'subscription' | 'anonymous';
 export type ProviderAuthMode = 'anonymous' | 'api-key' | 'none' | 'oauth';
 
+export type ProviderAuthRouteFreshness =
+  | 'healthy'
+  | 'expiring'
+  | 'expired'
+  | 'unconfigured';
+
 export interface ProviderAuthRoute {
   readonly route: string;
   readonly label: string;
@@ -9,6 +15,8 @@ export interface ProviderAuthRoute {
   readonly detail?: string;
   readonly envVars: readonly string[];
   readonly repairHints: readonly string[];
+  readonly freshness?: ProviderAuthRouteFreshness;
+  readonly providerId?: string;
 }
 
 export interface ProviderModelRef {

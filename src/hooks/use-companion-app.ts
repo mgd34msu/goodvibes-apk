@@ -27,6 +27,7 @@ import {
   saveCompanionChatSessionIds,
   saveSelectedCompanionChatSessionId,
   switchCurrentProviderModel,
+  updateCompanionChatSession,
 } from "../lib/goodvibes";
 import type {
   ActivityEntry,
@@ -55,6 +56,7 @@ import type {
   GoodVibesTasksSnapshot,
   TaskEvent,
 } from "../types/goodvibes";
+import type { ProviderModelRef } from "../types/provider-model";
 
 export interface PasswordSignInInput {
   readonly baseUrl: string;
@@ -116,6 +118,8 @@ export interface CompanionAppModel {
   readonly sharedSessionTurnState: GoodVibesSharedSessionTurnState | null;
   readonly providerCatalog: GoodVibesProvidersCatalog | null;
   readonly switchingModelKey: string | null;
+  readonly settingChatModelSessionId: string | null;
+  readonly pendingChatModel: ProviderModelRef | null;
   readonly error: string | null;
   readonly foreground: boolean;
   readonly lastUpdatedAt: number | null;
@@ -144,7 +148,22 @@ export interface CompanionAppModel {
   selectSession(sessionId: string): Promise<void>;
   sendMessage(sessionId: string, body: string): Promise<boolean>;
   sendFollowUp(sessionId: string, body: string): Promise<boolean>;
+  /**
+   * Shared/TUI flow ONLY. Mutates the daemon's global current model. Do not
+   * call from a remote-chat context — use {@link setChatSessionModel} or
+   * {@link setPendingChatModel} instead.
+   */
   switchProviderModel(registryKey: string): Promise<void>;
+  /**
+   * Remote chat flow. Updates a single companion chat session's provider/model
+   * without touching the global daemon/TUI current model.
+   */
+  setChatSessionModel(sessionId: string, registryKey: string): Promise<void>;
+  /**
+   * Remote chat flow. Stages a provider/model selection to be applied when the
+   * user creates a new companion chat session. Cleared after creation.
+   */
+  setPendingChatModel(model: ProviderModelRef | null): void;
   approve(approvalId: string): Promise<void>;
   deny(approvalId: string): Promise<void>;
 }
@@ -1178,6 +1197,11 @@ export function useCompanionApp(): CompanionAppModel {
     GoodVibesProvidersCatalog | null
   >(null);
   const [switchingModelKey, setSwitchingModelKey] = useState<string | null>(null);
+  const [settingChatModelSessionId, setSettingChatModelSessionId] = useState<
+    string | null
+  >(null);
+  const [pendingChatModel, setPendingChatModelState] =
+    useState<ProviderModelRef | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [foreground, setForeground] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
@@ -2067,7 +2091,10 @@ export function useCompanionApp(): CompanionAppModel {
           throw new Error("Daemon URL is not available.");
         }
         const nextTitle = title?.trim() || buildCompanionChatTitle();
-        const selectedModel = providerCatalog?.currentModel ?? null;
+        // Remote chat sessions are session-local. Use the staged pendingChatModel
+        // (set by the per-chat picker) — NOT the global providerCatalog.currentModel,
+        // which is bound to the TUI/shared session.
+        const selectedModel = pendingChatModel;
         const result = await withTimeout(
           createCompanionChatSession(sdk, {
             title: nextTitle,
@@ -2106,7 +2133,76 @@ export function useCompanionApp(): CompanionAppModel {
         return null;
       } finally {
         setCreatingChatSession(false);
+        // Clear any staged model selection — the new session now owns its model.
+        setPendingChatModelState(null);
       }
+    },
+  );
+
+  const setChatSessionModel = useEffectEvent(
+    async (sessionId: string, registryKey: string): Promise<void> => {
+      const sdk = sdkRef.current;
+      const trimmedSessionId = sessionId.trim();
+      const trimmedRegistryKey = registryKey.trim();
+      if (!sdk || !trimmedSessionId || !trimmedRegistryKey) {
+        return;
+      }
+
+      // Resolve provider from the catalog so the daemon receives both fields.
+      const providerEntry =
+        providerCatalog?.providers.find((provider) =>
+          provider.models.some(
+            (entry) => entry.registryKey === trimmedRegistryKey,
+          ),
+        ) ?? null;
+      const providerId = providerEntry?.id ?? null;
+
+      setSettingChatModelSessionId(trimmedSessionId);
+      setError(null);
+
+      try {
+        const result = await withTimeout(
+          updateCompanionChatSession(sdk, trimmedSessionId, {
+            model: trimmedRegistryKey,
+            ...(providerId ? { provider: providerId } : {}),
+          }),
+          "Chat session model update",
+        );
+        const nextSession = result.session;
+        startTransition(() => {
+          setChatSessions((prev) =>
+            prev.map((session) =>
+              session.id === nextSession.id ? nextSession : session,
+            ),
+          );
+          setSelectedChatSession((prev) =>
+            prev && prev.id === nextSession.id ? nextSession : prev,
+          );
+        });
+        pushActivity(
+          createActivityEntry({
+            domain: "app",
+            type: "CHAT_MODEL_CHANGED",
+            title: "Chat model updated",
+            detail:
+              (nextSession.title || nextSession.id) +
+              " · " +
+              (nextSession.model ?? trimmedRegistryKey),
+            createdAt: Date.now(),
+            tone: "accent",
+          }),
+        );
+      } catch (nextError) {
+        setError(formatError(nextError));
+      } finally {
+        setSettingChatModelSessionId(null);
+      }
+    },
+  );
+
+  const setPendingChatModel = useEffectEvent(
+    (model: ProviderModelRef | null): void => {
+      setPendingChatModelState(model);
     },
   );
 
@@ -3472,6 +3568,10 @@ export function useCompanionApp(): CompanionAppModel {
     sendMessage,
     sendFollowUp,
     switchProviderModel,
+    setChatSessionModel,
+    setPendingChatModel,
+    settingChatModelSessionId,
+    pendingChatModel,
     approve,
     deny,
   };
