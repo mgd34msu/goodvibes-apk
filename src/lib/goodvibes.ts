@@ -840,12 +840,9 @@ export async function createCompanionChatSession(
   sdk: Pick<ReactNativeGoodVibesSdk, 'operator'>,
   input: CreateCompanionChatSessionInput = {},
 ): Promise<CreateCompanionChatSessionOutput> {
-  return await sdk.operator.transport.requestJson<CreateCompanionChatSessionOutput>(
-    '/api/companion/chat/sessions',
-    {
-      method: 'POST',
-      body: input,
-    },
+  return await sdk.operator.invoke<CreateCompanionChatSessionOutput>(
+    'companion.chat.sessions.create',
+    input as Record<string, unknown>,
   );
 }
 
@@ -853,11 +850,9 @@ export async function getCompanionChatSession(
   sdk: Pick<ReactNativeGoodVibesSdk, 'operator'>,
   sessionId: string,
 ): Promise<GetCompanionChatSessionOutput> {
-  return await sdk.operator.transport.requestJson<GetCompanionChatSessionOutput>(
-    `/api/companion/chat/sessions/${encodeURIComponent(sessionId)}`,
-    {
-      method: 'GET',
-    },
+  return await sdk.operator.invoke<GetCompanionChatSessionOutput>(
+    'companion.chat.sessions.get',
+    { sessionId },
   );
 }
 
@@ -866,12 +861,9 @@ export async function postCompanionChatMessage(
   sessionId: string,
   input: PostCompanionChatMessageInput,
 ): Promise<PostCompanionChatMessageOutput> {
-  return await sdk.operator.transport.requestJson<PostCompanionChatMessageOutput>(
-    `/api/companion/chat/sessions/${encodeURIComponent(sessionId)}/messages`,
-    {
-      method: 'POST',
-      body: input,
-    },
+  return await sdk.operator.invoke<PostCompanionChatMessageOutput>(
+    'companion.chat.messages.create',
+    { sessionId, ...input } as Record<string, unknown>,
   );
 }
 
@@ -950,12 +942,9 @@ export async function updateCompanionChatSession(
   sessionId: string,
   input: UpdateCompanionChatSessionInput,
 ): Promise<UpdateCompanionChatSessionOutput> {
-  return await sdk.operator.transport.requestJson<UpdateCompanionChatSessionOutput>(
-    `/api/companion/chat/sessions/${encodeURIComponent(sessionId)}`,
-    {
-      method: 'PATCH',
-      body: input,
-    },
+  return await sdk.operator.invoke<UpdateCompanionChatSessionOutput>(
+    'companion.chat.sessions.update',
+    { sessionId, ...input } as Record<string, unknown>,
   );
 }
 

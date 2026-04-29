@@ -94,14 +94,16 @@ interface SelectedChatSessionPayload {
   readonly messages: readonly GoodVibesCompanionChatMessage[];
 }
 
-interface CompanionConversationRouteResult {
-  readonly messageId: string;
-  readonly routedTo: "conversation";
-}
-
+type GoodVibesConversationRouteResult = Extract<
+  GoodVibesSessionMessageSubmitResult,
+  { readonly routedTo: "conversation" }
+>;
+type GoodVibesSessionSubmissionResult =
+  | Exclude<GoodVibesSessionMessageSubmitResult, GoodVibesConversationRouteResult>
+  | GoodVibesSessionFollowUpResult;
 type GoodVibesConversationMessageSubmitResult =
   | GoodVibesSessionMessageSubmitResult
-  | CompanionConversationRouteResult;
+  | GoodVibesSessionFollowUpResult;
 
 export interface CompanionAppModel {
   readonly phase: "booting" | "signed-out" | "ready";
@@ -969,12 +971,24 @@ function buildTaskActivity(event: TaskEvent): ActivityEntry {
 
 function isConversationRouteResult(
   value: unknown,
-): value is CompanionConversationRouteResult {
+): value is GoodVibesConversationRouteResult {
   return (
     typeof value === "object" &&
     value !== null &&
     "routedTo" in value &&
     (value as { readonly routedTo?: unknown }).routedTo === "conversation"
+  );
+}
+
+function isSessionSubmissionResult(
+  value: GoodVibesConversationMessageSubmitResult,
+): value is GoodVibesSessionSubmissionResult {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "input" in value &&
+    "mode" in value &&
+    "message" in value
   );
 }
 
@@ -2425,56 +2439,61 @@ export function useCompanionApp(): CompanionAppModel {
           });
         };
 
-        if (intent === "submit") {
-          if (isConversationRouteResult(result)) {
-            const submittedAt = Date.now();
-            stageSessionMessage({
-              id: result.messageId,
-              sessionId,
-              role: "user",
-              body: nextBody,
-              createdAt: submittedAt,
-              surfaceKind: MOBILE_SURFACE_KIND,
-              surfaceId: MOBILE_SURFACE_ID,
-              metadata: {
-                source: "companion-followup",
-                messageId: result.messageId,
-                timestamp: submittedAt,
-                optimistic: true,
-              },
-            });
-            sharedSessionEventFloorRef.current = {
-              sessionId,
+        if (isConversationRouteResult(result)) {
+          const submittedAt = Date.now();
+          stageSessionMessage({
+            id: result.messageId,
+            sessionId,
+            role: "user",
+            body: nextBody,
+            createdAt: submittedAt,
+            surfaceKind: MOBILE_SURFACE_KIND,
+            surfaceId: MOBILE_SURFACE_ID,
+            metadata: {
+              source: "companion-followup",
+              messageId: result.messageId,
               timestamp: submittedAt,
-            };
-            startTransition(() => {
-              setSessionSubmission(null);
-              setSharedSessionTurnState({
-                sessionId,
-                userMessageId: result.messageId,
-                turnId: null,
-                status: "waiting",
-                error: null,
-                content: null,
-                submittedAt,
-                updatedAt: submittedAt,
-              });
+              optimistic: true,
+            },
+          });
+          sharedSessionEventFloorRef.current = {
+            sessionId,
+            timestamp: submittedAt,
+          };
+          startTransition(() => {
+            setSessionSubmission(null);
+            setSharedSessionTurnState({
+              sessionId,
+              userMessageId: result.messageId,
+              turnId: null,
+              status: "waiting",
+              error: null,
+              content: null,
+              submittedAt,
+              updatedAt: submittedAt,
             });
-            pushActivity(
-              createActivityEntry({
-                domain: "app",
-                type: "SESSION_MESSAGE_SENT",
-                title: "Main chat sent",
-                detail: `${nextBody.slice(0, 140)} · delivered to the live conversation`,
-                createdAt: submittedAt,
-                tone: "accent",
-              }),
-            );
-            await loadSelectedSession(sdk, sessionId, { silent: true });
-            queueRefresh();
-            return true;
-          }
+          });
+          pushActivity(
+            createActivityEntry({
+              domain: "app",
+              type: "SESSION_MESSAGE_SENT",
+              title: "Main chat sent",
+              detail: `${nextBody.slice(0, 140)} · delivered to the live conversation`,
+              createdAt: submittedAt,
+              tone: "accent",
+            }),
+          );
+          await loadSelectedSession(sdk, sessionId, { silent: true });
+          queueRefresh();
+          return true;
+        }
 
+        if (!isSessionSubmissionResult(result)) {
+          setError("The daemon returned an unexpected session submission response.");
+          return false;
+        }
+
+        if (intent === "submit") {
           if (result.mode !== "rejected") {
             stageSessionMessage(result.message, result.session ?? null);
           }
