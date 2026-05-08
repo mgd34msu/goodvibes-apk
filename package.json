@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pellux/goodvibes-sdk": "^0.27.4",
+    "@pellux/goodvibes-sdk": "^0.33.17",
     "@react-native-async-storage/async-storage": "^3.0.2",
     "react": "^19.2.3",
     "react-native": "^0.85.1",
