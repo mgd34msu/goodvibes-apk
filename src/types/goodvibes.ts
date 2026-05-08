@@ -1,5 +1,5 @@
-import type { RuntimeEventRecord } from '@pellux/goodvibes-sdk';
 import type { OperatorMethodOutput } from '@pellux/goodvibes-sdk/contracts';
+import type { ProviderEvent } from '@pellux/goodvibes-sdk/events/providers';
 import type { ReactNativeGoodVibesSdk } from '@pellux/goodvibes-sdk/react-native';
 import type {
   CompanionChatMessage,
@@ -52,16 +52,7 @@ export type GoodVibesProvidersCatalog = ListProvidersResponse;
 export type GoodVibesCurrentModelResponse = CurrentModelResponse;
 export type GoodVibesPatchCurrentModelResponse = PatchCurrentModelResponse;
 export type GoodVibesPatchCurrentModelError = PatchCurrentModelError;
-export type GoodVibesProviderEvent = Extract<
-  RuntimeEventRecord,
-  {
-    type:
-      | 'PROVIDERS_CHANGED'
-      | 'PROVIDER_WARNING'
-      | 'MODEL_FALLBACK'
-      | 'MODEL_CHANGED';
-  }
->;
+export type GoodVibesProviderEvent = ProviderEvent;
 
 export interface GoodVibesCompanionChatTurnState {
   readonly sessionId: string;

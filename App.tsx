@@ -508,6 +508,52 @@ function formatChatSessionModelSummary(
   return session.model;
 }
 
+function resolveProviderModelRef(
+  providers: readonly ProviderEntry[],
+  providerId: string | null | undefined,
+  modelId: string | null | undefined,
+): ProviderModelRef | null {
+  const trimmedModelId = modelId?.trim();
+  if (!trimmedModelId) {
+    return null;
+  }
+
+  const candidateProviders = providerId?.trim()
+    ? providers.filter((provider) => provider.id === providerId.trim())
+    : providers;
+  const matchingModel = candidateProviders
+    .flatMap((provider) => provider.models)
+    .find(
+      (model) =>
+        model.id === trimmedModelId ||
+        model.registryKey === trimmedModelId ||
+        (providerId?.trim()
+          ? model.registryKey === providerId.trim() + ":" + trimmedModelId
+          : false),
+    );
+
+  if (matchingModel) {
+    return {
+      registryKey: matchingModel.registryKey,
+      provider: matchingModel.provider,
+      id: matchingModel.id,
+    };
+  }
+
+  const provider = providerId?.trim() || (trimmedModelId.includes(":")
+    ? trimmedModelId.split(":")[0] ?? "unknown"
+    : "unknown");
+  return {
+    registryKey: trimmedModelId.includes(":")
+      ? trimmedModelId
+      : provider + ":" + trimmedModelId,
+    provider,
+    id: trimmedModelId.includes(":")
+      ? trimmedModelId.split(":")[1] ?? trimmedModelId
+      : trimmedModelId,
+  };
+}
+
 function formatProviderModelLabel(model: ProviderModelEntry): string {
   return model.label?.trim() || model.registryKey;
 }
@@ -740,7 +786,13 @@ function AppShell() {
     ) ??
     null;
   const loadedChatMessages = model.chatMessages;
+  const chatPinnedModelRef = resolveProviderModelRef(
+    model.providerCatalog?.providers ?? [],
+    selectedChatSession?.provider,
+    selectedChatSession?.model,
+  );
   const selectedChatModelSummary =
+    (chatPinnedModelRef ? formatCurrentModelSummary(chatPinnedModelRef) : null) ??
     formatChatSessionModelSummary(selectedChatSession) ??
     (selectedChatSession ? "daemon default" : null);
   const selectedChatTurnState =
@@ -750,19 +802,6 @@ function AppShell() {
   const selectedChatActivityAt =
     selectedChatSession?.updatedAt ?? selectedChatSession?.createdAt ?? null;
   const chatIsClosed = selectedChatSession?.status === "closed";
-  const chatPinnedModelRef: ProviderModelRef | null = selectedChatSession?.model
-    ? {
-        registryKey: selectedChatSession.model,
-        provider:
-          selectedChatSession.provider ??
-          (selectedChatSession.model.includes(":")
-            ? selectedChatSession.model.split(":")[0] ?? ""
-            : ""),
-        id: selectedChatSession.model.includes(":")
-          ? selectedChatSession.model.split(":")[1] ?? selectedChatSession.model
-          : selectedChatSession.model,
-      }
-    : null;
   const effectiveScope: "global" | "chat" =
     modelApplyScope === "chat" && !selectedChatSession && !model.pendingChatModel
       ? "chat"

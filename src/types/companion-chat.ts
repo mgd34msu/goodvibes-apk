@@ -8,6 +8,14 @@ export interface ConversationMessageEnvelope {
   readonly body: string;
   readonly source: string;
   readonly timestamp: number;
+  readonly attachments?: readonly CompanionChatAttachment[];
+}
+
+export interface CompanionChatAttachment {
+  readonly artifactId: string;
+  readonly label?: string;
+  readonly mimeType?: string;
+  readonly sizeBytes?: number;
 }
 
 export interface CompanionChatMessage {
@@ -16,6 +24,7 @@ export interface CompanionChatMessage {
   readonly role: CompanionChatMessageRole;
   readonly content: string;
   readonly createdAt: number;
+  readonly attachments?: readonly CompanionChatAttachment[];
 }
 
 export interface CompanionChatSession {
@@ -46,6 +55,7 @@ export interface CreateCompanionChatSessionOutput {
 
 export interface PostCompanionChatMessageInput {
   readonly content: string;
+  readonly attachments?: readonly CompanionChatAttachment[];
   readonly metadata?: Record<string, unknown>;
 }
 
@@ -75,6 +85,7 @@ export interface CompanionChatTurnStartedEvent {
   readonly messageId: string;
   readonly turnId: string;
   readonly envelope: ConversationMessageEnvelope;
+  readonly attachments?: readonly CompanionChatAttachment[];
 }
 
 export interface CompanionChatTurnDeltaEvent {

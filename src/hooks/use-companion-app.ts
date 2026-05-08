@@ -225,6 +225,13 @@ function compareSessionMessages(
   return left.id.localeCompare(right.id);
 }
 
+function modelIdFromRegistryKey(registryKey: string): string {
+  const separatorIndex = registryKey.indexOf(":");
+  return separatorIndex >= 0
+    ? registryKey.slice(separatorIndex + 1)
+    : registryKey;
+}
+
 function readSessionMessageCorrelationId(
   message: GoodVibesSessionMessageRecord,
 ): string | null {
@@ -653,12 +660,15 @@ function mergeCompanionChatMessagesFromRecentEvents(
     }
 
     if (event.type === "turn.started" && !merged.has(event.messageId)) {
+      const attachments =
+        event.attachments ?? event.envelope.attachments ?? undefined;
       merged.set(event.messageId, {
         id: event.messageId,
         sessionId,
         role: "user",
         content: event.envelope.body,
         createdAt: event.envelope.timestamp,
+        ...(attachments?.length ? { attachments } : {}),
       });
     }
 
@@ -672,6 +682,9 @@ function mergeCompanionChatMessagesFromRecentEvents(
         role: "assistant",
         content: event.envelope.body,
         createdAt: event.envelope.timestamp,
+        ...(event.envelope.attachments?.length
+          ? { attachments: event.envelope.attachments }
+          : {}),
       });
     }
   }
@@ -2114,7 +2127,7 @@ export function useCompanionApp(): CompanionAppModel {
             title: nextTitle,
             ...(selectedModel
               ? {
-                  model: selectedModel.registryKey,
+                  model: selectedModel.id,
                   provider: selectedModel.provider,
                 }
               : {}),
@@ -2169,7 +2182,12 @@ export function useCompanionApp(): CompanionAppModel {
             (entry) => entry.registryKey === trimmedRegistryKey,
           ),
         ) ?? null;
+      const modelEntry =
+        providerEntry?.models.find(
+          (entry) => entry.registryKey === trimmedRegistryKey,
+        ) ?? null;
       const providerId = providerEntry?.id ?? null;
+      const modelId = modelEntry?.id ?? modelIdFromRegistryKey(trimmedRegistryKey);
 
       setSettingChatModelSessionId(trimmedSessionId);
       setError(null);
@@ -2177,7 +2195,7 @@ export function useCompanionApp(): CompanionAppModel {
       try {
         const result = await withTimeout(
           updateCompanionChatSession(sdk, trimmedSessionId, {
-            model: trimmedRegistryKey,
+            model: modelId,
             ...(providerId ? { provider: providerId } : {}),
           }),
           "Chat session model update",
