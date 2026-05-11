@@ -98,8 +98,8 @@ android {
         applicationId "com.pellux.goodvibescompanion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 12
-        versionName "0.4.8"
+        versionCode 13
+        versionName "0.4.9"
         manifestPlaceholders = [usesCleartextTraffic: "true"]
 
     }
